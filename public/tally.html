@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ARTA Client Satisfaction Measurement - Tally</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+</head>
+<body>
+  <div class="app">
+    <!-- Header -->
+    <header class="header">
+      <div class="brand">
+        <i class="bi bi-clipboard2-check-fill"></i>
+        <div>
+          <h1>Client Satisfaction Measurement</h1>
+          <span class="brand-sub">Tally System &middot; ARTA-ARC12242-3</span>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="icon-btn" title="Undo last tally" onclick="undoLast()">
+          <i class="bi bi-arrow-counterclockwise"></i>
+        </button>
+        <button class="icon-btn" title="Refresh" onclick="reloadViews()">
+          <i class="bi bi-arrow-clockwise"></i>
+        </button>
+        <button class="icon-btn" title="Settings" onclick="openSettings()">
+          <i class="bi bi-gear"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- Session Info -->
+    <div id="session-header"
+      hx-get="/api/session-header"
+      hx-trigger="revealed"
+      hx-swap="innerHTML"></div>
+
+    <!-- Main Tally Content -->
+    <main id="tally-content"
+      hx-get="/api/tally-body"
+      hx-trigger="revealed"
+      hx-swap="innerHTML"></main>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal-overlay" onclick="if(event.target===this)closeSettings()">
+      <div class="modal">
+        <div class="modal-header">
+          <h2>Settings</h2>
+          <button class="modal-close" onclick="closeSettings()">&times;</button>
+        </div>
+
+        <div class="modal-section">
+          <h3>SESSION INFORMATION</h3>
+          <form method="POST" action="/api/settings">
+            <div class="form-group">
+              <label for="form-title-input">Form Title</label>
+              <input type="text" id="form-title-input" name="formTitle">
+            </div>
+            <div class="form-group">
+              <label for="session-input">Session</label>
+              <input type="text" id="session-input" name="session">
+            </div>
+            <button type="submit" class="btn btn-primary">Save Changes</button>
+          </form>
+        </div>
+
+        <div class="modal-section">
+          <h3>SUMMARY</h3>
+          <p>Review the current tally results before printing.</p>
+          <a href="/summary" class="btn btn-secondary" target="_blank">
+            <i class="bi bi-file-earmark-bar-graph"></i> View Summary
+          </a>
+        </div>
+
+        <div class="modal-section danger-zone">
+          <h3>DANGER ZONE</h3>
+          <div class="danger-content">
+            <div>
+              <p>Reset all tally counts for this session.</p>
+              <small>This action will clear all current tallies.</small>
+            </div>
+            <form method="POST" action="/api/reset"
+              onsubmit="return confirm('Are you sure you want to reset all tallies? This cannot be undone.');">
+              <button type="submit" class="btn btn-danger">
+                <i class="bi bi-trash3"></i> Reset Tallies
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function loadSettings() {
+      fetch("/api/state")
+        .then((r) => r.json())
+        .then((s) => {
+          document.getElementById("form-title-input").value = s.formTitle;
+          document.getElementById("session-input").value = s.session;
+        });
+    }
+
+    function openSettings() {
+      loadSettings();
+      document.getElementById("settings-modal").classList.add("open");
+    }
+
+    function closeSettings() {
+      document.getElementById("settings-modal").classList.remove("open");
+    }
+
+    function reloadViews() {
+      htmx.ajax("GET", "/api/tally-body", { target: "#tally-content", swap: "innerHTML" });
+      htmx.ajax("GET", "/api/session-header", { target: "#session-header", swap: "innerHTML" });
+    }
+
+    function undoLast() {
+      fetch("/api/undo-json", { method: "POST" })
+        .then((r) => {
+          if (!r.ok) {
+            alert("Nothing to undo.");
+            return null;
+          }
+          return r.json();
+        })
+        .then((data) => {
+          if (data && data.ok) reloadViews();
+        });
+    }
+  </script>
+</body>
+</html>

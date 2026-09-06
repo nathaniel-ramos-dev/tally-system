@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Summary - Client Satisfaction Measurement</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+</head>
+<body>
+  <div class="summary-page">
+    <div class="print-actions">
+      <button class="btn btn-secondary" onclick="window.print()">
+        <i class="bi bi-printer"></i> Print
+      </button>
+      <a href="/" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Back to Tally
+      </a>
+    </div>
+
+    <div class="summary-card">
+      <div class="summary-header">
+        <div class="summary-header-content"
+          hx-get="/api/summary/header"
+          hx-trigger="revealed"
+          hx-swap="innerHTML">
+          <strong id="summary-title">Loading...</strong>
+          <div id="summary-total">Total: 0</div>
+        </div>
+      </div>
+
+      <div id="summary-section-a" hx-get="/api/summary/a" hx-trigger="revealed" hx-swap="innerHTML"></div>
+
+      <div id="summary-section-b" hx-get="/api/summary/b" hx-trigger="revealed" hx-swap="innerHTML"></div>
+    </div>
+  </div>
+</body>
+</html>
