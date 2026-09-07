@@ -247,7 +247,8 @@ h2::before {
   align-items: center;
 }
 
-.resp-input-row input {
+.resp-input-row input,
+.resp-input-row select {
   width: 170px;
   padding: 11px 14px;
   border: 1px solid #d0d5dd;
@@ -256,7 +257,8 @@ h2::before {
   font-size: 0.95rem;
 }
 
-.resp-input-row input:focus {
+.resp-input-row input:focus,
+.resp-input-row select:focus {
   outline: none;
   border-color: var(--gov-green-bright);
   box-shadow: 0 0 0 3px rgba(23, 145, 104, 0.15);

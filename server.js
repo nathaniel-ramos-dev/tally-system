@@ -24,6 +24,7 @@ let db = {
       { id: "female", label: "Female", count: 0 },
     ],
     ages: [],       // numeric ages recorded via number input
+    region: "",    // optional region input via text input
     services: {},   // { "Service Name": count } via text input
   },
   sectionA: [
@@ -74,10 +75,37 @@ let db = {
 
 const undoStack = [];
 
+const PHILIPPINE_REGIONS = [
+  "National Capital Region (NCR)",
+  "Cordillera Administrative Region (CAR)",
+  "Region I - Ilocos Region",
+  "Region II - Cagayan Valley",
+  "Region III - Central Luzon",
+  "Region IV-A - CALABARZON",
+  "MIMAROPA Region",
+  "Region V - Bicol Region",
+  "Region VI - Western Visayas",
+  "Negros Island Region (NIR)",
+  "Region VII - Central Visayas",
+  "Region VIII - Eastern Visayas",
+  "Region IX - Zamboanga Peninsula",
+  "Region X - Northern Mindanao",
+  "Region XI - Davao Region",
+  "Region XII - SOCCSKSARGEN",
+  "Region XIII - Caraga",
+  "Bangsamoro Autonomous Region in Muslim Mindanao (BARMM)",
+];
+
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
 function totalForms() {
-  return db.respondent.clientTypes.reduce((s, t) => s + t.count, 0);
+  // total forms based on the highest count of any respondent profile field
+  const clientTypeTotal = db.respondent.clientTypes.reduce((s, t) => s + t.count, 0);
+  const sexTotal = db.respondent.sex.reduce((s, x) => s + x.count, 0);
+  const ageTotal = db.respondent.ages.length;
+  const serviceTotal = Object.values(db.respondent.services).reduce((s, n) => s + n, 0);
+  const regionTotal = db.respondent.region ? 1 : 0;
+  return Math.max(clientTypeTotal, sexTotal, ageTotal, serviceTotal, regionTotal);
 }
 
 function totalTallies() {
@@ -157,6 +185,24 @@ function renderRespondentPanel() {
         `
           )
           .join("")}
+      </div>
+
+      <div class="resp-line">
+        <span class="resp-field-label">Region:</span>
+        <div class="resp-input-row">
+          <select id="region-input">
+            <option value="">Select a Philippine region</option>
+            ${PHILIPPINE_REGIONS.map((region) => `<option value="${esc(region)}"${db.respondent.region === region ? " selected" : ""}>${esc(region)}</option>`).join("")}
+          </select>
+          <button class="btn btn-primary btn-sm" type="button"
+            hx-post="/api/respondent/region"
+            hx-vals="js:{region:document.getElementById('region-input').value}"
+            hx-target="#region-value"
+            hx-swap="outerHTML">
+            <i class="bi bi-check-lg"></i> Save
+          </button>
+        </div>
+        <span id="region-value" class="resp-meta">${db.respondent.region ? `Selected: ${esc(db.respondent.region)}` : "No region selected"}</span>
       </div>
 
       <div class="resp-line">
@@ -341,6 +387,17 @@ app.post("/api/respondent/age", (req, res) => {
   res.send(`<span id="resp-ages" class="resp-meta">Age entries: ${db.respondent.ages.length}</span>`);
 });
 
+// Respondent: Philippine region selector
+app.post("/api/respondent/region", (req, res) => {
+  const region = String(req.body.region || "").trim();
+  if (!PHILIPPINE_REGIONS.includes(region)) {
+    return res.send(`<span id="region-value" class="resp-meta">${db.respondent.region ? `Selected: ${esc(db.respondent.region)}` : "No region selected"} (choose a valid region)</span>`);
+  }
+  pushUndo();
+  db.respondent.region = region;
+  res.send(`<span id="region-value" class="resp-meta">Selected: ${esc(region)}</span>` + oobTotal());
+});
+
 // Respondent: service availed input
 app.post("/api/respondent/service", (req, res) => {
   const service = String(req.body.service || "").trim();
@@ -420,6 +477,7 @@ app.post("/api/reset", (_req, res) => {
   for (const t of db.respondent.clientTypes) t.count = 0;
   for (const s of db.respondent.sex) s.count = 0;
   db.respondent.ages = [];
+  db.respondent.region = "";
   db.respondent.services = {};
   for (const q of db.sectionA) for (const o of q.options) o.count = 0;
   for (const q of db.sectionB) {
@@ -462,6 +520,17 @@ app.get("/api/summary/a", (_req, res) => {
           .join("")}
       </div>
     </div>`;
+
+  // Region
+  if (db.respondent.region) {
+    html += `
+      <div class="summary-question">
+        <div class="summary-question-label">Region</div>
+        <div class="summary-options">
+          <div class="summary-option">${esc(db.respondent.region)}</div>
+        </div>
+      </div>`;
+  }
 
   // Sex
   const sexTotal = db.respondent.sex.reduce((s, x) => s + x.count, 0);
